@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+
+# FastAPI
+instance/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
