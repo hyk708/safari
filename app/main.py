@@ -1,13 +1,14 @@
 from fastapi import FastAPI
 from app.routes import auth, protected, posts, categories, programs
 from app.core.database import initialize_database
+from contextlib import asynccontextmanager
 
-app = FastAPI()
-
-# ✅ DB 초기화 실행
-@app.on_event("startup")
-async def startup_db():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     await initialize_database()
+    yield
+
+app = FastAPI(lifespan=lifespan, redirect_slashes=False)  # 🔥 `redirect_slashes=False` 추가
 
 app.include_router(auth.router, prefix="/auth")
 app.include_router(protected.router)
