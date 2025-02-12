@@ -1,4 +1,3 @@
-# main.py
 from fastapi import FastAPI
 from app.routes import auth, post, categories, programs, presets
 from app.core.database import initialize_database
@@ -12,6 +11,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan, redirect_slashes=False)
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 

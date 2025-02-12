@@ -1,4 +1,3 @@
-# service/post_service.py
 import os
 from fastapi import UploadFile
 from app.core.database import posts_collection
