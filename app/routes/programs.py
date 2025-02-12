@@ -1,125 +1,83 @@
-from fastapi import APIRouter, Depends, HTTPException, Body, Request
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
 from bson import ObjectId, errors
-from app.core.database import programs_collection, categories_collection
 from app.core.security import decode_access_token
 from app.core.utils import convert_objectid
-from fastapi.security import OAuth2PasswordBearer
+from app.services.program_service import (
+    create_program, get_programs, get_program, update_program, delete_program
+)
+from app.services.category_service import get_or_create_uncategorized, get_category
+from app.schemas.program import ProgramCreate, ProgramUpdate, ProgramResponse, ProgramListResponse
+from app.schemas.base import ResponseModel
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)):
-    """JWT 토큰을 쿠키에서 가져오거나 Authorization 헤더에서 가져옴"""
-    token = request.cookies.get("access_token") or token
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    payload = decode_access_token(token.replace("Bearer ", ""))
+# ✅ 프로그램 생성
+@router.post("/", response_model=ProgramResponse)
+async def create_program_route(program: ProgramCreate, token: str = Depends(oauth2_scheme)):
+    payload = decode_access_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    return payload
+    # ✅ "미분류" 카테고리 자동 배정
+    category_id = program.category_id if program.category_id else await get_or_create_uncategorized(payload["email"])
 
-async def get_or_create_uncategorized(email: str):
-    """사용자의 '미분류' 카테고리를 찾거나 없으면 생성"""
-    category = await categories_collection.find_one({"name": "미분류", "created_by": email})
+    program_id = await create_program(program.name, category_id, payload["email"])
+    return ProgramResponse(id=program_id, name=program.name, category_id=category_id if category_id else None)
 
-    if not category:
-        new_category = {"name": "미분류", "created_by": email}
-        result = await categories_collection.insert_one(new_category)
-        category_id = str(result.inserted_id)
-    else:
-        category_id = str(category["_id"])
+# ✅ 모든 프로그램 조회
+@router.get("/", response_model=ProgramListResponse)
+async def get_programs_route(category_id: str = None):
+    # ✅ category_id가 존재하면 ObjectId 변환 시도
+    if category_id is not None:
+        try:
+            category_id = ObjectId(category_id)
+        except errors.InvalidId:
+            raise HTTPException(status_code=400, detail="Invalid category ID format")
 
-    return category_id
+    return ProgramListResponse(programs=await get_programs(category_id))
 
-# ✅ Create a new program (프로그램 생성)
-@router.post("/")
-async def create_program(
-    name: str = Body(..., embed=True),
-    category_id: str = None,
-    user: dict = Depends(get_current_user)
-):
-    """새로운 프로그램 생성 (본인만 생성 가능)"""
-    if not category_id:
-        category_id = await get_or_create_uncategorized(user["email"])  # ✅ 미분류 카테고리 자동 배정
-
-    program = {"name": name, "category_id": category_id, "created_by": user["email"]}
-    result = await programs_collection.insert_one(program)
-    return {"id": str(result.inserted_id), "name": name, "category_id": category_id}
-
-# ✅ Read all programs (모든 프로그램 조회)
-@router.get("/")
-async def get_programs(category_id: str = None):
-    """카테고리에 속한 프로그램 조회 (모든 사용자 가능)"""
-    query = {"category_id": category_id} if category_id else {}
-    programs = await programs_collection.find(query).to_list(100)
-    return convert_objectid(programs)
-
-# ✅ Read a single program (특정 프로그램 조회)
-@router.get("/{program_id}")
-async def get_program(program_id: str):
-    """특정 프로그램 정보 조회"""
-    try:
-        obj_id = ObjectId(program_id)
-    except errors.InvalidId:
-        raise HTTPException(status_code=400, detail="Invalid program ID format")
-
-    program = await programs_collection.find_one({"_id": obj_id})
+# ✅ 특정 프로그램 조회
+@router.get("/{program_id}", response_model=ProgramResponse)
+async def get_program_route(program_id: str):
+    program = await get_program(program_id)
     if not program:
         raise HTTPException(status_code=404, detail="Program not found")
 
-    return convert_objectid(program)
+    return program
 
-# ✅ Update a program (프로그램 수정)
-@router.put("/{program_id}")
-async def update_program(
-    program_id: str,
-    data: dict = Body(...),
-    user: dict = Depends(get_current_user)
-):
-    """프로그램 정보 수정 (본인만 가능)"""
-    try:
-        obj_id = ObjectId(program_id)
-    except errors.InvalidId:
-        raise HTTPException(status_code=400, detail="Invalid program ID format")
+@router.put("/{program_id}", response_model=ProgramResponse)
+async def update_program_route(program_id: str, program: ProgramUpdate, token: str = Depends(oauth2_scheme)):
+    payload = decode_access_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-    program = await programs_collection.find_one({"_id": obj_id})
-    if not program:
+    # ✅ category_id가 있으면 유효성 검증
+    if program.category_id:
+        try:
+            obj_id = ObjectId(program.category_id)
+        except errors.InvalidId:
+            raise HTTPException(status_code=400, detail="Invalid category ID format")
+
+        # ✅ 해당 category_id가 존재하는지 확인
+        category_exists = await get_category(program.category_id)
+        if not category_exists:
+            raise HTTPException(status_code=404, detail="Category not found")
+
+    updated_program = await update_program(program_id, program.name, program.category_id)
+    if not updated_program:
         raise HTTPException(status_code=404, detail="Program not found")
 
-    if program["created_by"] != user["email"]:
-        raise HTTPException(status_code=403, detail="Permission denied")
+    return convert_objectid(updated_program)  # ✅ 변환 적용
 
-    update_fields = {}
-    if "name" in data:
-        update_fields["name"] = data["name"]
-    if "category_id" in data:
-        update_fields["category_id"] = data["category_id"]
 
-    if update_fields:
-        await programs_collection.update_one({"_id": obj_id}, {"$set": update_fields})
+# ✅ 프로그램 삭제
+@router.delete("/{program_id}", response_model=ResponseModel)
+async def delete_program_route(program_id: str, token: str = Depends(oauth2_scheme)):
+    payload = decode_access_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-    return {"message": "Program updated successfully"}
-
-# ✅ Delete a program (프로그램 삭제)
-@router.delete("/{program_id}")
-async def delete_program(
-    program_id: str,
-    user: dict = Depends(get_current_user)
-):
-    """프로그램 삭제 (본인만 가능)"""
-    try:
-        obj_id = ObjectId(program_id)
-    except errors.InvalidId:
-        raise HTTPException(status_code=400, detail="Invalid program ID format")
-
-    program = await programs_collection.find_one({"_id": obj_id})
-    if not program:
-        raise HTTPException(status_code=404, detail="Program not found")
-
-    if program["created_by"] != user["email"]:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    await programs_collection.delete_one({"_id": obj_id})
-    return {"message": "Program deleted successfully"}
+    await delete_program(program_id)
+    return ResponseModel(message="Program deleted successfully")

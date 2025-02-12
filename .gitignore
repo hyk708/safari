@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 *.pyo
 venv/
+.venv/
 .env
 
 # FastAPI
@@ -13,3 +14,6 @@ instance/
 
 # OS
 .DS_Store
+
+# image
+uploads/
