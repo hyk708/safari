@@ -2,6 +2,13 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 
+class PresetBase(BaseModel):
+    name: str
+    description: Optional[str]
+    category_ids: List[str]
+    programs: List[str]
+    is_public: bool
+
 # ✅ 프리셋 생성 요청 모델
 class PresetCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)

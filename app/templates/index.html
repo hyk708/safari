@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>desktime</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/static/auth.js" defer></script> <!-- ✅ 공통 로그인 스크립트 추가 -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            checkLoginStatus();  // ✅ auth.js에 정의된 함수 호출
+        });
+    </script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            overflow: hidden; /* 가로, 세로 스크롤바 모두 제거 */
+        }
+
+        .navbar {
+            background-color: #686868 !important;
+        }
+
+        .navbar-brand {
+            color: white !important;
+            font-weight: bold;
+        }
+
+        .card {
+            border-radius: 10px;
+            width: 600px;
+            height: 200px;
+
+            margin: 10px;
+            /* 모든 방향으로 10px 간격 추가 */
+        }
+
+        .card:nth-child(2n+1) {
+            /* 홀수 번째 카드 */
+            margin-left: -70px;
+            /* 왼쪽에 20px 간격 추가 */
+        }
+
+        .card:nth-child(2n) {
+            /* 짝수 번째 카드 */
+            margin-left: 80px;
+            /* 오른쪽에 20px 간격 추가 */
+        }
+
+        .card:nth-child(-n+2) {
+            /* 1, 2번 카드 */
+            height: 260px;
+            /* 원하는 높이 값으로 변경 */
+        }
+
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(2, 600px);
+            grid-template-rows: repeat(2, 400px);
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .custom-navbar {
+            width: 80%;
+            border-radius: 20px;
+        }
+
+        .custom-navbar .nav-item {
+            flex: 1;
+            text-align: center;
+            border-right: 1px solid #ddd;
+        }
+
+        .custom-navbar .nav-item:last-child {
+            border-right: none;
+        }
+
+        footer {
+            width: 100%;
+            background-color: #343a40;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 배너 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">DeskTime</a>
+            <span id="user-info" class="text-white me-3"></span> <!-- ✅ 유저 이름 표시 -->
+            <button id="auth-btn" class="btn btn-primary text-white px-3" onclick="location.href='/login'">로그인</button>
+        </div>
+    </nav>
+
+    <!-- 추가 네비게이션 바 -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light mt-3 custom-navbar mx-auto">
+        <div class="container">
+            <ul class="navbar-nav w-100 d-flex flex-row">
+                <li class="nav-item">
+                    <a class="nav-link fw-bold text-white" href="1번 사이트 주소">게시판</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-bold text-white" href="/settings">카테고리 관리</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-bold text-white" href="3번 사이트 주소">프리셋 공유</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 메인 컨텐츠 -->
+
+
+    <div class="container card-container">
+        <div class="card ratio ratio-16x9">
+            <div class="card-body">
+                <h5 class="card-title">현재 인기있는 바탕화면</h5>
+                <a href="#" class="stretched-link"></a>
+            </div>
+        </div>
+        <div class="card ratio ratio-16x9">
+            <div class="card-body">
+                <h5 class="card-title">최악의 바탕화면</h5>
+                <a href="#" class="stretched-link"></a>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <h5 class="card-title">hot 게시글</h5>
+                    <a href="이동할_사이트_주소" class="btn btn-primary btn-sm">게시판</a>
+                </div>
+                <ul>
+                    <li><a href="글_주소1">글 제목1</a></li>
+                    <li><a href="글_주소2">글 제목2</a></li>
+                </ul>
+            </div>
+
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <h5 class="card-title">최근 게시글</h5>
+                    <a href="이동할_사이트_주소" class="btn btn-primary btn-sm">게시판</a>
+                </div>
+                <ul>
+                    <li><a href="글_주소1">글 제목1</a></li>
+                    <li><a href="글_주소2">글 제목2</a></li>    
+                </ul>
+            </div>
+        </div>
+
+        <footer class="bg-dark text-white text-center py-3 mt-4">
+            <p class="mb-0">© 2025 DeskTIme. All rights reserved.</p>
+        </footer>
+
+
+
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+
+</html>

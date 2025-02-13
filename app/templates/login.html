@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>desktime_login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    .google-login-btn {
+      background-color: #4285F4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      text-align: center;
+      border-radius: 4px;
+    }
+    .google-login-btn:hover {
+      background-color: #357ae8;
+    }
+    .button-container {
+      display: flex;
+      gap: 4px; /* 버튼 간 간격 조절 */
+    }
+    .button-container > * {
+      flex: 1; /* 5:5 비율 */
+      width: 50%; /* 필요에 따라 명시적으로 width 설정 */
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100 flex justify-center items-center h-screen">
+  <div class="w-3/5 flex bg-white shadow-lg rounded-lg">
+    <div class="flex-1 p-10">
+      <h2 class="text-center text-2xl font-semibold mb-6">DeskTime 로그인</h2>
+      
+      <!-- 👇 form에 id 부여 -->
+      <form id="login-form">
+        <div class="mb-4">
+          <input type="text" class="w-full p-3 border border-gray-300 rounded-md" id="username"
+                 placeholder="아이디를 입력하세요" />
+        </div>
+        <div class="mb-4">
+          <input type="password" class="w-full p-3 border border-gray-300 rounded-md" id="password"
+                 placeholder="비밀번호를 입력하세요" />
+        </div>
+        <button type="submit"
+                class="w-full py-3 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition">
+          로그인
+        </button>
+
+        <div class="mt-6 button-container">
+          <button type="button" class="google-login-btn" id="google-btn">
+            <img
+              src="https://w7.pngwing.com/pngs/937/156/png-transparent-google-logo-google-search-google-account-redes-search-engine-optimization-text-service-thumbnail.png"
+              alt="Google Logo" class="w-5 h-5 inline-block mr-2 align-middle">
+            <span>구글로 로그인</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 오른쪽 배너 이미지 -->
+    <div class="flex-1 p-6 flex justify-center items-center">
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRoam_abgjIggts-rZm_HsBVRqHHsZM0vjEwg&s"
+           alt="Google Login" class="max-w-full h-auto" />
+    </div>
+  </div>
+
+  <!-- 👇 JS 스크립트: 일반 로그인 + 구글 로그인 모두 처리 -->
+  <script>
+    // === 1) 일반 로그인: 아이디/비번 ===
+    const loginForm = document.getElementById("login-form");
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault(); // 폼 기본 동작 막기
+
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      // FastAPI가 OAuth2PasswordRequestForm을 받으므로, x-www-form-urlencoded로 전송
+      const params = new URLSearchParams();
+      params.append("username", username);
+      params.append("password", password);
+
+      try {
+        const response = await axios.post(
+          "http://localhost:8000/auth/token", 
+          params,
+          { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+        );
+
+        // 로그인 성공 시 index 페이지로 이동
+        window.location.href = "/";
+      } catch (error) {
+        console.error("로그인 실패:", error);
+        alert("로그인에 실패했습니다.");
+      }
+    });
+
+    // === 2) 구글 로그인 ===
+    const googleBtn = document.getElementById("google-btn");
+    googleBtn.addEventListener("click", async () => {
+      try {
+        const response = await axios.get("http://localhost:8000/auth/google/login");
+        if (response.data.auth_url) {
+          // Google OAuth URL로 이동
+          window.location.href = response.data.auth_url;
+        }
+      } catch (error) {
+        console.error("Google 로그인 요청 실패:", error);
+        alert("로그인 중 오류가 발생했습니다.");
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,10 +1,10 @@
-# service/post_service.py
 import os
 from fastapi import UploadFile
 from app.core.database import posts_collection
 from bson import ObjectId, errors
 from datetime import datetime
 from typing import Optional, List
+import json
 
 UPLOAD_FOLDER = "static/uploads"
 
@@ -145,3 +145,19 @@ async def update_scrap_count(post_id: str, increment: int):
     """스크랩 수 업데이트"""
     obj_id = ObjectId(post_id)
     await posts_collection.update_one({"_id": obj_id}, {"$inc": {"scrap_count": increment}})
+
+async def create_post_from_preset(preset_json: str, user_email: str):
+    """프리셋 JSON을 기반으로 게시글 생성"""
+    preset_data = json.loads(preset_json)
+
+    post = {
+        "title": f"Shared Preset: {preset_data['name']}",
+        "content": f"Preset Description: {preset_data['description']}\nPrograms: {', '.join(preset_data['programs'])}",
+        "author": user_email,
+        "created_at": datetime.utcnow(),
+        "preset_data": preset_data
+    }
+
+    result = await posts_collection.insert_one(post)
+    post["_id"] = str(result.inserted_id)
+    return post
